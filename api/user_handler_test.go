@@ -21,7 +21,8 @@ type testdb struct {
 }
 
 const testdburi = "mongodb://localhost:27017"
-const testdbName = "hotel-reservation-test"
+
+// const testdbName = "hotel-reservation-test"
 
 func (tdb *testdb) teardown(t *testing.T) {
 	if err := tdb.UserStore.Drop(context.TODO()); err != nil {

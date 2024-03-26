@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hotel-reservation/db"
 	"hotel-reservation/types"
+	"net/http"
 	"os"
 	"time"
 
@@ -33,11 +34,23 @@ type AuthRespose struct {
 	Token string      `json:"token"`
 }
 
+type genericResp struct {
+	Type string `json:"type"`
+	Msg  string `json:"msg"`
+}
+
+func invalidCredentials(c *fiber.Ctx) error {
+	return c.Status(http.StatusBadRequest).JSON(genericResp{
+		Type: "error",
+		Msg:  "invalid credentials",
+	})
+}
+
 // -----------------------------------------------------------
 // A handler should only do:
 //   - serialization of the incoming request (JSON)
 //   - database queries
-//   - call business logic
+//   - CALL business logic, rather than execute business logic internally
 //   - return desired data
 //
 // .
@@ -51,14 +64,16 @@ func (h *AuthHandler) HandleAuthenticate(c *fiber.Ctx) error {
 
 	user, err := h.userStore.GetUserByEmail(c.Context(), params.Email)
 	if err != nil {
+
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return fmt.Errorf("invalid credentials")
+			return invalidCredentials(c)
 		}
+
 		return err
 	}
 
 	if !types.IsValidPassword(user.EncryptedPassword, params.Password) {
-		return fmt.Errorf("invalid credentials")
+		return invalidCredentials(c)
 	}
 
 	resp := AuthRespose{
@@ -72,7 +87,7 @@ func (h *AuthHandler) HandleAuthenticate(c *fiber.Ctx) error {
 func createTokenFromUser(user *types.User) string {
 
 	now := time.Now()
-	expires := now.Add(time.Hour * 1).Unix()
+	expires := now.Add(time.Hour * 4).Unix()
 
 	claims := jwt.MapClaims{
 		"id":      user.ID,
