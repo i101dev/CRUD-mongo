@@ -2,10 +2,9 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"hotel-reservation/db"
-	"hotel-reservation/types"
+	"fmt"
+	"hotel-reservation/db/fixtures"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -14,41 +13,20 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func insertTestUser(t *testing.T, userStore db.UserStore) *types.User {
-	user, err := types.NewUserFromParams(types.CreateUserParams{
-		FirstName: "Jimmy",
-		LastName:  "Jackme",
-		Email:     "jimmy@mail.com",
-		Password:  "fuqyourcouch",
-	})
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = userStore.InsertUser(context.TODO(), user)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return user
-}
-
 func TestAuthenticateWrongPassword(t *testing.T) {
 
-	test_db := setup()
+	test_db := setup(t)
 	defer test_db.teardown(t)
 
-	insertedUser := insertTestUser(t, test_db.UserStore)
-	insertedUser.EncryptedPassword = ""
+	fixtures.AddUser(test_db.Store, "test", "user", false)
 
 	app := fiber.New()
 
-	authHandler := NewAuthHandler(test_db.UserStore)
+	authHandler := NewAuthHandler(test_db.User)
 	app.Post("/auth", authHandler.HandleAuthenticate)
 
 	params := AuthParams{
-		Email:    "jimmy@mail.com",
+		Email:    "test@user.com",
 		Password: "fuqyourcouch-is-incorrect",
 	}
 
@@ -79,20 +57,21 @@ func TestAuthenticateWrongPassword(t *testing.T) {
 }
 func TestAuthenticateSuccess(t *testing.T) {
 
-	test_db := setup()
+	test_db := setup(t)
 	defer test_db.teardown(t)
 
-	insertedUser := insertTestUser(t, test_db.UserStore)
+	// insertedUser := insertTestUser(t, test_db.User)
+	insertedUser := fixtures.AddUser(test_db.Store, "test", "user", false)
 	insertedUser.EncryptedPassword = ""
 
 	app := fiber.New()
 
-	authHandler := NewAuthHandler(test_db.UserStore)
+	authHandler := NewAuthHandler(test_db.User)
 	app.Post("/auth", authHandler.HandleAuthenticate)
 
 	params := AuthParams{
-		Email:    "jimmy@mail.com",
-		Password: "fuqyourcouch",
+		Email:    fmt.Sprintf("%s@%s.com", insertedUser.FirstName, insertedUser.LastName),
+		Password: fmt.Sprintf("%s_%s", insertedUser.FirstName, insertedUser.LastName),
 	}
 
 	b, _ := json.Marshal(params)

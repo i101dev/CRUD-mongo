@@ -44,9 +44,9 @@ func main() {
 		}
 
 		hotelHandler   = api.NewHotelHandler(store)
+		roomHandler    = api.NewRoomHandler(store)
 		userHandler    = api.NewUserHandler(userStore)
 		authHandler    = api.NewAuthHandler(userStore)
-		roomHandler    = api.NewRoomHandler(store)
 		bookingHandler = api.NewBookingHandler(store)
 
 		app   = fiber.New(config)
@@ -76,6 +76,7 @@ func main() {
 
 	// Booking ----------------------------------------------------
 	apiV1.Get("/booking/:id", bookingHandler.HandleGetBooking)
+	apiV1.Get("/booking/:id/cancel", bookingHandler.HandleCancelBooking)
 
 	// Admin ------------------------------------------------------
 	admin.Get("/booking", bookingHandler.HandleGetBookings)
