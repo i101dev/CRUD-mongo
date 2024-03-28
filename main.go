@@ -2,7 +2,6 @@ package main
 
 import (
 	"hotel-reservation/api"
-	"hotel-reservation/api/middleware"
 	"hotel-reservation/db"
 
 	"context"
@@ -15,9 +14,7 @@ import (
 )
 
 var config = fiber.Config{
-	ErrorHandler: func(c *fiber.Ctx, err error) error {
-		return c.JSON(map[string]string{"error": err.Error()})
-	},
+	ErrorHandler: api.ErrorHandler,
 }
 
 func main() {
@@ -51,8 +48,8 @@ func main() {
 
 		app   = fiber.New(config)
 		auth  = app.Group("/api")
-		apiV1 = app.Group("/api/v1", middleware.JWTAuthentication(userStore))
-		admin = apiV1.Group("/admin", middleware.AdminAuth)
+		apiV1 = app.Group("/api/v1", api.JWTAuthentication(userStore))
+		admin = apiV1.Group("/admin", api.AdminAuth)
 	)
 
 	// Auth -------------------------------------------------------
@@ -66,7 +63,7 @@ func main() {
 	apiV1.Delete("/user/:id", userHandler.HandleDeleteUser)
 
 	// Hotel ------------------------------------------------------
-	apiV1.Get("/hotel", hotelHandler.HandlerGetHotels)
+	apiV1.Get("/hotel", hotelHandler.HandleGetHotels)
 	apiV1.Get("/hotel/:id", hotelHandler.HandleGetHotelById)
 	apiV1.Get("/hotel/:id/rooms", hotelHandler.HandleGetRooms)
 

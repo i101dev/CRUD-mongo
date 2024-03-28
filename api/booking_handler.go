@@ -2,7 +2,6 @@ package api
 
 import (
 	"hotel-reservation/db"
-	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,42 +22,11 @@ func (h *BookingHandler) HandleGetBookings(c *fiber.Ctx) error {
 	bookings, err := h.store.Booking.GetBookings(c.Context(), bson.M{})
 
 	if err != nil {
-		return err
+		return ErrorResourceNotFound("all bookings data")
 	}
 
 	return c.JSON(bookings)
 }
-
-func (h *BookingHandler) HandleCancelBooking(c *fiber.Ctx) error {
-
-	id := c.Params("id")
-
-	booking, err := h.store.Booking.GetBookingByID(c.Context(), id)
-
-	if err != nil {
-		return err
-	}
-
-	user, err := getAuthUser(c)
-	if err != nil {
-		return err
-	}
-
-	if booking.UserID != user.ID {
-		return c.Status(http.StatusUnauthorized).JSON(genericResp{
-			Type: "error",
-			Msg:  "nost authorized",
-		})
-	}
-
-	if err := h.store.Booking.UpdateBooking(c.Context(), c.Params("id"), bson.M{"canceled": true}); err != nil {
-		return err
-	}
-
-	return c.JSON(genericResp{Type: "msg", Msg: "booking cancelled"})
-
-}
-
 func (h *BookingHandler) HandleGetBooking(c *fiber.Ctx) error {
 
 	id := c.Params("id")
@@ -66,20 +34,42 @@ func (h *BookingHandler) HandleGetBooking(c *fiber.Ctx) error {
 	booking, err := h.store.Booking.GetBookingByID(c.Context(), id)
 
 	if err != nil {
-		return err
+		return ErrorResourceNotFound("booking data")
 	}
 
 	user, err := getAuthUser(c)
 	if err != nil {
-		return err
+		return ErrorUnauthorized()
 	}
 
 	if booking.UserID != user.ID {
-		return c.Status(http.StatusUnauthorized).JSON(genericResp{
-			Type: "error",
-			Msg:  "nost authorized",
-		})
+		return ErrorUnauthorized()
 	}
 
 	return c.JSON(booking)
+}
+func (h *BookingHandler) HandleCancelBooking(c *fiber.Ctx) error {
+
+	id := c.Params("id")
+
+	booking, err := h.store.Booking.GetBookingByID(c.Context(), id)
+
+	if err != nil {
+		return ErrorResourceNotFound("booking data")
+	}
+
+	user, err := getAuthUser(c)
+	if err != nil {
+		return ErrorUnauthorized()
+	}
+
+	if booking.UserID != user.ID {
+		return ErrorUnauthorized()
+	}
+
+	if err := h.store.Booking.UpdateBooking(c.Context(), c.Params("id"), bson.M{"canceled": true}); err != nil {
+		return err
+	}
+
+	return c.JSON(genericResp{Type: "msg", Msg: "booking cancelled"})
 }

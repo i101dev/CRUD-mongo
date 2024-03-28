@@ -1,17 +1,26 @@
 package api
 
 import (
-	"errors"
 	"hotel-reservation/db"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type HotelHandler struct {
 	store *db.Store
+}
+
+type ResourceResp struct {
+	Results int `json:"results"`
+	Page    int `json:"page"`
+	Data    any `json:"data"`
+}
+
+type HotelQueryParams struct {
+	db.Pagination
+	Rating int
 }
 
 func NewHotelHandler(s *db.Store) *HotelHandler {
@@ -27,7 +36,7 @@ func (h *HotelHandler) HandleGetRooms(c *fiber.Ctx) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
-		return err
+		return ErrorInvalidID()
 	}
 
 	filter := bson.M{"hotelID": oid}
@@ -35,20 +44,36 @@ func (h *HotelHandler) HandleGetRooms(c *fiber.Ctx) error {
 	rooms, err := h.store.Room.GetRooms(c.Context(), filter)
 
 	if err != nil {
-		return err
+		return ErrorResourceNotFound("hotel data")
 	}
 
 	return c.JSON(rooms)
 }
-func (h *HotelHandler) HandlerGetHotels(c *fiber.Ctx) error {
+func (h *HotelHandler) HandleGetHotels(c *fiber.Ctx) error {
 
-	hotels, err := h.store.Hotel.GetHotels(c.Context(), nil)
+	var params HotelQueryParams
 
-	if err != nil {
-		return err
+	if err := c.QueryParser(&params); err != nil {
+		return ErrorBadRequest()
 	}
 
-	return c.JSON(hotels)
+	filter := db.Map{
+		"rating": params.Rating,
+	}
+
+	hotels, err := h.store.Hotel.GetHotels(c.Context(), filter, &params.Pagination)
+
+	if err != nil {
+		return ErrorResourceNotFound("all hotels data")
+	}
+
+	resp := ResourceResp{
+		Data:    hotels,
+		Results: len(hotels),
+		Page:    int(params.Page),
+	}
+
+	return c.JSON(resp)
 }
 func (h *HotelHandler) HandleGetHotelById(c *fiber.Ctx) error {
 
@@ -57,12 +82,7 @@ func (h *HotelHandler) HandleGetHotelById(c *fiber.Ctx) error {
 	hotel, err := h.store.Hotel.GetHotelByID(c.Context(), id)
 
 	if err != nil {
-
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return c.JSON(map[string]string{"error": "document not found"})
-		}
-
-		return err
+		return ErrorResourceNotFound("hotel data")
 	}
 
 	return c.JSON(hotel)

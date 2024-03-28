@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"hotel-reservation/api/middleware"
 	"hotel-reservation/db/fixtures"
 	"hotel-reservation/types"
 	"net/http"
@@ -29,8 +28,8 @@ func TestUserGetBooking(t *testing.T) {
 		till           = from.AddDate(0, 0, 3)
 		numPersons     = 2
 		booking        = fixtures.AddBooking(db.Store, user.ID, room.ID, from, till, numPersons)
-		app            = fiber.New()
-		route          = app.Group("/", middleware.JWTAuthentication(db.User))
+		app            = fiber.New(fiber.Config{ErrorHandler: ErrorHandler})
+		route          = app.Group("/", JWTAuthentication(db.User))
 		bookingHandler = NewBookingHandler(db.Store)
 	)
 
@@ -74,8 +73,7 @@ func TestUserGetBooking(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if resp.StatusCode == http.StatusOK {
-		// t.Fatal("An outside user still got access to the booking")
+	if resp.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("\n*** >>> expected non-admin request to fail (not 200). status: %d", resp.StatusCode)
 	}
 }
@@ -95,8 +93,8 @@ func TestAdminGetBookings(t *testing.T) {
 		till           = from.AddDate(0, 0, 3)
 		numPersons     = 2
 		booking        = fixtures.AddBooking(db.Store, user.ID, room.ID, from, till, numPersons)
-		app            = fiber.New()
-		admin          = app.Group("/", middleware.JWTAuthentication(db.User), middleware.AdminAuth)
+		app            = fiber.New(fiber.Config{ErrorHandler: ErrorHandler})
+		admin          = app.Group("/", JWTAuthentication(db.User), AdminAuth)
 		bookingHandler = NewBookingHandler(db.Store)
 	)
 
@@ -145,7 +143,7 @@ func TestAdminGetBookings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if resp.StatusCode == http.StatusOK {
-		t.Fatalf("\n*** >>> expected non-admin request to fail (not 200). status: %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("\n*** >>> expected [http.StatusUnauthorized] - received: %d", resp.StatusCode)
 	}
 }

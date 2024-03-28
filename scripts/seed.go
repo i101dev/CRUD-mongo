@@ -7,6 +7,7 @@ import (
 	"hotel-reservation/db"
 	"hotel-reservation/db/fixtures"
 	"log"
+	"math/rand"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -39,6 +40,12 @@ func main() {
 	admin := fixtures.AddUser(&store, "admin", "hotel", true)
 	hotel := fixtures.AddHotel(&store, "Hotel Alpha", "Narnia", 77, nil)
 	room := fixtures.AddRoom(&store, "large", true, 345, hotel.ID)
+
+	for i := 0; i < 100; i++ {
+		name := fmt.Sprintf("Random-Hotel-%d", i)
+		loc := fmt.Sprintf("Random-Location-%d", i)
+		fixtures.AddHotel(&store, name, loc, rand.Intn(5)+1, nil)
+	}
 
 	var (
 		from       = time.Now().AddDate(0, 0, 2)
