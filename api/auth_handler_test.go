@@ -96,6 +96,10 @@ func TestAuthenticateSuccess(t *testing.T) {
 		t.Fatalf("\n*** >>> expected JWT token to be present in the auth response")
 	}
 	if !reflect.DeepEqual(insertedUser, authResp.User) {
+
+		fmt.Printf("\n*** >>> [insertedUser] %+v", insertedUser)
+		fmt.Printf("\n*** >>> [authRespUser] %+v", authResp.User)
+
 		t.Fatalf("\n*** >>> [insertedUser] mismatch with [authResp.user]")
 	}
 }

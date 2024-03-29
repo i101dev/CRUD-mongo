@@ -1,10 +1,6 @@
 package db
 
-const (
-	TEST_DBNAME = "test-hotel-reservation"
-	DBNAME      = "hotel-reservation"
-	DBURI       = "mongodb://localhost:27017"
-)
+var MongoDBEnvName string = "MONGO_DB_NAME"
 
 type Store struct {
 	User    UserStore
